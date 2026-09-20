@@ -1,51 +1,21 @@
-# VIREON Architecture
+# VIREON Architecture — V1.0
 
-## Current release: V0.3
+VIREON is an evidence-aware monitoring platform prototype composed of replaceable domain modules.
 
-VIREON is a synthetic-data-first research prototype for pharmaceutical lifecycle intelligence.
+System flow:
+Synthetic sources -> Event ingestion/validation -> Persistent event store -> Signal engine / AI-GUARD / Digital measures -> Evidence graph -> Trial integrity + Lifecycle engine -> Human review.
 
-### V0.3 architecture
+## Module contracts
+- Event boundary: typed, timezone-aware input validation.
+- Signal engine: deterministic, versioned rules.
+- Evidence graph: event -> signal -> evidence relationships.
+- AI-GUARD: reference/current distribution and missingness monitoring.
+- Digital measures: completeness and expected-range checks.
+- Trial integrity: site-level monitoring indicators for missingness, deviations, and timestamp collisions.
+- Lifecycle engine: discovery through post-market workflow representation.
 
-```text
-Synthetic / future connected source
-            |
-            v
-     FastAPI ingestion
-            |
-     validate + normalize
-            |
-            v
-       SQLite event store
-            |
-            v
-     deterministic signal engine
-            |
-      +-----+------+
-      |            |
-      v            v
-    Signal      Evidence Link
-      |            |
-      +-----+------+
-            |
-            v
-    Evidence retrieval API
-```
+## Design rationale
+FDA/EMA's January 2026 AI principles emphasize human-centric design, risk-based assessment, context of use, data governance/documentation, model lifecycle management, and performance assessment. FDA is also expanding digital-health and real-time-clinical-trial work. VIREON converts those themes into explicit, testable software boundaries.
 
-The important design boundary is that a signal is not treated as a standalone alert. VIREON records which event produced it and which versioned detector generated it. This creates the first provenance edge for the future evidence graph.
-
-## Why this shape
-
-The research phase identified real-time clinical trials, digitally derived measures, and lifecycle AI governance as active areas of regulatory and technical development. VIREON therefore uses an event-first model and keeps provenance attached to analysis outputs.
-
-V0.3 deliberately avoids requiring Kafka, Neo4j, or cloud infrastructure for the portfolio prototype. The interfaces are kept small so durable event streaming and graph storage can be added later without rewriting the domain layer.
-
-## Next architecture increments
-
-1. **V0.4 — Evidence Graph:** expand evidence links into a graph of event -> transformation -> detector/model -> signal -> review action.
-2. **V0.5 — AI-GUARD:** add model metadata, reference datasets, drift metrics, and validation status.
-3. **V0.6 — Digital Measure Validation:** add synthetic wearable/device streams and fit-for-purpose validation metrics.
-4. **Later:** provide Kafka/NATS adapters, FHIR/OMOP interoperability, and multi-site/federated processing boundaries.
-
-## Safety boundary
-
-VIREON is a research prototype. Its signal engine demonstrates detection and provenance mechanics only; it must not be used for autonomous clinical decisions or patient care.
+## Non-goals
+No diagnosis, treatment recommendation, autonomous clinical decision, regulatory approval prediction, patient data, or claim of regulatory compliance.

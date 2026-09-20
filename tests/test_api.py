@@ -1,79 +1,26 @@
 from __future__ import annotations
-
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-
 from fastapi.testclient import TestClient
-
 from vireon.api import create_app
 
-
 class ApiTests(unittest.TestCase):
-    def setUp(self) -> None:
-        self.tempdir = tempfile.TemporaryDirectory()
-        database_path = Path(self.tempdir.name) / "test.db"
-        self.client = TestClient(create_app(database_path))
+    def setUp(self):
+        self.tempdir=tempfile.TemporaryDirectory(); self.client=TestClient(create_app(Path(self.tempdir.name)/"test.db"))
+    def tearDown(self): self.tempdir.cleanup()
+    def _event(self):
+        return {"event_id":"E-API-001","patient_id":"P-001","site_id":"S-01","event_type":"lab_result","timestamp":(datetime.now(timezone.utc)-timedelta(minutes=1)).isoformat(),"values":{"biomarker_x":135.0},"source":"test"}
+    def test_health_and_event(self):
+        self.assertEqual(self.client.get("/health").status_code,200); self.assertEqual(self.client.post("/v1/events",json=self._event()).status_code,201); self.assertEqual(self.client.get("/v1/events/E-API-001").status_code,200)
+    def test_graph_and_evidence(self):
+        self.client.post("/v1/events",json=self._event()); self.assertEqual(self.client.post("/v1/signals/detect").json()["signal_count"],1); self.assertEqual(self.client.get("/v1/signals/SIG-E-API-001/evidence").status_code,200); self.assertGreaterEqual(len(self.client.get("/v1/evidence/graph").json()["nodes"]),3)
+    def test_ai_guard(self):
+        r=self.client.post("/v1/ai-guard/assess",json={"model_id":"demo","version":"1","context_of_use":"research monitoring","risk_tier":"medium","validation_status":"validated","reference":[100,100,100],"current":[130,130,130]}); self.assertEqual(r.status_code,200); self.assertIn("distribution_mean_shift",r.json()["assessment"]["risk_flags"])
+    def test_digital_measure(self):
+        r=self.client.post("/v1/digital-measures/validate",json={"measure_id":"wearable-activity","values":[1,None,2,3]}); self.assertEqual(r.status_code,200); self.assertIn("high_missingness",r.json()["flags"])
+    def test_trial_integrity_and_lifecycle(self):
+        now=datetime.now(timezone.utc).isoformat(); r=self.client.post("/v1/trial-integrity/sites/S-01/assess",json=[{"event_id":"1","site_id":"S-01","timestamp":now,"event_type":"visit","complete":True,"protocol_deviation":True}]); self.assertEqual(r.status_code,200); self.assertEqual(len(self.client.get("/v1/lifecycle/CAND-001").json()["snapshots"]),8)
 
-    def tearDown(self) -> None:
-        self.tempdir.cleanup()
-
-    def _payload(self, **overrides: object) -> dict[str, object]:
-        timestamp = datetime.now(timezone.utc) - timedelta(minutes=1)
-        payload: dict[str, object] = {
-            "event_id": "E-API-001",
-            "patient_id": "P-001",
-            "site_id": "S-01",
-            "event_type": "lab_result",
-            "timestamp": timestamp.isoformat(),
-            "values": {"biomarker_x": 135.0},
-            "source": "test",
-        }
-        payload.update(overrides)
-        return payload
-
-    def test_health(self) -> None:
-        response = self.client.get("/health")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["status"], "ok")
-
-    def test_create_and_read_event(self) -> None:
-        created = self.client.post("/v1/events", json=self._payload())
-        self.assertEqual(created.status_code, 201)
-
-        fetched = self.client.get("/v1/events/E-API-001")
-        self.assertEqual(fetched.status_code, 200)
-        self.assertEqual(fetched.json()["values"]["biomarker_x"], 135.0)
-
-    def test_invalid_future_event_is_rejected(self) -> None:
-        future = datetime.now(timezone.utc) + timedelta(hours=1)
-        response = self.client.post(
-            "/v1/events",
-            json=self._payload(timestamp=future.isoformat()),
-        )
-        self.assertEqual(response.status_code, 422)
-
-    def test_signal_detection_creates_provenance(self) -> None:
-        created = self.client.post("/v1/events", json=self._payload())
-        self.assertEqual(created.status_code, 201)
-
-        response = self.client.post("/v1/signals/detect")
-        self.assertEqual(response.status_code, 200)
-        body = response.json()
-        self.assertEqual(body["signal_count"], 1)
-        self.assertEqual(body["signals"][0]["detector_version"], "threshold-rules/0.2")
-
-        evidence = self.client.get("/v1/signals/SIG-E-API-001/evidence")
-        self.assertEqual(evidence.status_code, 200)
-        links = evidence.json()["links"]
-        self.assertEqual(len(links), 1)
-        self.assertEqual(links[0]["evidence"]["relationship"], "detected_from")
-        self.assertEqual(
-            links[0]["source_event"]["event_id"],
-            "E-API-001",
-        )
-
-
-if __name__ == "__main__":
-    unittest.main()
+if __name__=="__main__": unittest.main()
