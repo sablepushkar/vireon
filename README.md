@@ -8,12 +8,14 @@ VIREON is an open-source research and engineering prototype for monitoring pharm
 
 ## Current milestone
 
-**V0.1 — Deterministic event and signal core**
+**V0.2 — API + persistent event store**
 
 - Validated pharmaceutical/trial event model
 - Deterministic synthetic event generation
 - Rule-based anomaly signal detection
-- Tests for validation and signal behaviour
+- FastAPI REST interface
+- SQLite-backed event persistence
+- Automated unit/API tests
 - GitHub Actions CI
 
 ## Architecture direction
@@ -23,7 +25,7 @@ Synthetic / future real data
         ↓
   Event validation
         ↓
-   Event store
+ Persistent event store
         ↓
  Signal detection
         ↓
@@ -41,13 +43,17 @@ Future modules will add trial-integrity monitoring, AI-model monitoring, digital
 Requires Python 3.11+.
 
 ```bash
+python -m pip install -e ".[test]"
 python -m unittest discover -s tests -v
+uvicorn vireon.api:app --reload
 ```
+
+API documentation is then available at `/docs`.
 
 ## Roadmap
 
 - V0.1: event + signal core
-- V0.2: REST API + persistent database
+- **V0.2: REST API + persistent database**
 - V0.3: real-time event streaming
 - V0.4: evidence lineage graph
 - V0.5: AI-GUARD monitoring
