@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 
 from ..core.models import EventType, PharmaEvent
@@ -12,6 +13,7 @@ class EventStore:
 
     def __init__(self, database_path: str | Path = "vireon.db") -> None:
         self._path = Path(database_path)
+        self._path.parent.mkdir(parents=True, exist_ok=True)
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
@@ -52,16 +54,7 @@ class EventStore:
         if row is None:
             return None
 
-        payload = json.loads(row["payload"])
-        return PharmaEvent(
-            event_id=payload["event_id"],
-            patient_id=payload["patient_id"],
-            site_id=payload["site_id"],
-            event_type=EventType(payload["event_type"]),
-            timestamp=__import__("datetime").datetime.fromisoformat(payload["timestamp"]),
-            values=payload["values"],
-            source=payload["source"],
-        )
+        return self._from_payload(json.loads(row["payload"]))
 
     def list_events(self, limit: int = 100) -> list[PharmaEvent]:
         if not 1 <= limit <= 1000:
@@ -69,7 +62,12 @@ class EventStore:
 
         with self._connect() as connection:
             rows = connection.execute(
-                "SELECT payload FROM events ORDER BY json_extract(payload, '$.timestamp') DESC LIMIT ?",
+                """
+                SELECT payload
+                FROM events
+                ORDER BY json_extract(payload, '$.timestamp') DESC
+                LIMIT ?
+                """,
                 (limit,),
             ).fetchall()
 
@@ -77,14 +75,18 @@ class EventStore:
 
     @staticmethod
     def _from_payload(payload: dict[str, object]) -> PharmaEvent:
-        from datetime import datetime
+        patient_id = payload["patient_id"]
+        values = payload["values"]
+
+        if not isinstance(values, dict):
+            raise ValueError("stored event values must be an object")
 
         return PharmaEvent(
             event_id=str(payload["event_id"]),
-            patient_id=payload["patient_id"] if payload["patient_id"] is None else str(payload["patient_id"]),
+            patient_id=None if patient_id is None else str(patient_id),
             site_id=str(payload["site_id"]),
             event_type=EventType(str(payload["event_type"])),
             timestamp=datetime.fromisoformat(str(payload["timestamp"])),
-            values=payload["values"],  # type: ignore[arg-type]
+            values=values,
             source=str(payload["source"]),
         )
