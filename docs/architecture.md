@@ -1,31 +1,51 @@
-# VIREON Architecture — V0.1
+# VIREON Architecture
 
-## Goal
+## Current release: V0.3
 
-V0.1 establishes a small, deterministic vertical slice of the future VIREON platform.
+VIREON is a synthetic-data-first research prototype for pharmaceutical lifecycle intelligence.
 
-## Data flow
+### V0.3 architecture
 
+```text
+Synthetic / future connected source
+            |
+            v
+     FastAPI ingestion
+            |
+     validate + normalize
+            |
+            v
+       SQLite event store
+            |
+            v
+     deterministic signal engine
+            |
+      +-----+------+
+      |            |
+      v            v
+    Signal      Evidence Link
+      |            |
+      +-----+------+
+            |
+            v
+    Evidence retrieval API
 ```
-Synthetic source
-      ↓
- PharmaEvent
-      ↓
- Event validation
-      ↓
- Deterministic signal rules
-      ↓
- Signal
-```
 
-## Design principles
+The important design boundary is that a signal is not treated as a standalone alert. VIREON records which event produced it and which versioned detector generated it. This creates the first provenance edge for the future evidence graph.
 
-1. **Synthetic-first:** no patient data is required for development.
-2. **Validation before inference:** malformed events are rejected before signal processing.
-3. **Deterministic baseline:** early signal rules are explicit and testable.
-4. **Human-in-the-loop:** a signal is an alert for review, never an autonomous medical decision.
-5. **Traceability:** each signal references the source event that caused it.
+## Why this shape
 
-## Planned V0.2 boundary
+The research phase identified real-time clinical trials, digitally derived measures, and lifecycle AI governance as active areas of regulatory and technical development. VIREON therefore uses an event-first model and keeps provenance attached to analysis outputs.
 
-V0.2 will move this core behind a REST API and persistence layer. The domain objects in V0.1 are deliberately framework-light so that the core can be reused by the API, streaming layer, batch jobs, and future evidence graph.
+V0.3 deliberately avoids requiring Kafka, Neo4j, or cloud infrastructure for the portfolio prototype. The interfaces are kept small so durable event streaming and graph storage can be added later without rewriting the domain layer.
+
+## Next architecture increments
+
+1. **V0.4 — Evidence Graph:** expand evidence links into a graph of event -> transformation -> detector/model -> signal -> review action.
+2. **V0.5 — AI-GUARD:** add model metadata, reference datasets, drift metrics, and validation status.
+3. **V0.6 — Digital Measure Validation:** add synthetic wearable/device streams and fit-for-purpose validation metrics.
+4. **Later:** provide Kafka/NATS adapters, FHIR/OMOP interoperability, and multi-site/federated processing boundaries.
+
+## Safety boundary
+
+VIREON is a research prototype. Its signal engine demonstrates detection and provenance mechanics only; it must not be used for autonomous clinical decisions or patient care.

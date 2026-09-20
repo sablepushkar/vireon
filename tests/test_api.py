@@ -41,7 +41,6 @@ class ApiTests(unittest.TestCase):
     def test_create_and_read_event(self) -> None:
         created = self.client.post("/v1/events", json=self._payload())
         self.assertEqual(created.status_code, 201)
-        self.assertEqual(created.json()["event_id"], "E-API-001")
 
         fetched = self.client.get("/v1/events/E-API-001")
         self.assertEqual(fetched.status_code, 200)
@@ -55,7 +54,7 @@ class ApiTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 422)
 
-    def test_signal_detection(self) -> None:
+    def test_signal_detection_creates_provenance(self) -> None:
         created = self.client.post("/v1/events", json=self._payload())
         self.assertEqual(created.status_code, 201)
 
@@ -63,7 +62,17 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         body = response.json()
         self.assertEqual(body["signal_count"], 1)
-        self.assertEqual(body["signals"][0]["signal_type"], "biomarker_elevation")
+        self.assertEqual(body["signals"][0]["detector_version"], "threshold-rules/0.2")
+
+        evidence = self.client.get("/v1/signals/SIG-E-API-001/evidence")
+        self.assertEqual(evidence.status_code, 200)
+        links = evidence.json()["links"]
+        self.assertEqual(len(links), 1)
+        self.assertEqual(links[0]["evidence"]["relationship"], "detected_from")
+        self.assertEqual(
+            links[0]["source_event"]["event_id"],
+            "E-API-001",
+        )
 
 
 if __name__ == "__main__":

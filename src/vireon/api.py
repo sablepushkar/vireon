@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
-from .core.models import EventType, PharmaEvent
+from .core.models import EventType, EvidenceLink, PharmaEvent
 from .core.validation import EventValidationError, validate_event
 from .signal_engine import detect_signals
 from .storage.sqlite import EventStore
@@ -46,7 +46,7 @@ def _to_domain(request: EventRequest) -> PharmaEvent:
 def create_app(database_path: str | Path = "vireon.db") -> FastAPI:
     app = FastAPI(
         title="VIREON",
-        version="0.2.0",
+        version="0.3.0",
         description="Pharmaceutical lifecycle intelligence prototype API.",
     )
     store = EventStore(database_path)
@@ -72,7 +72,7 @@ def create_app(database_path: str | Path = "vireon.db") -> FastAPI:
     def get_event(event_id: str) -> dict[str, Any]:
         event = store.get(event_id)
         if event is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="event not found")
+            raise HTTPException(status_code=404, detail="event not found")
         return event.as_dict()
 
     @app.post("/v1/signals/detect")
@@ -81,7 +81,42 @@ def create_app(database_path: str | Path = "vireon.db") -> FastAPI:
     ) -> dict[str, Any]:
         events = store.list_events(limit)
         signals = detect_signals(events)
-        return {"event_count": len(events), "signal_count": len(signals), "signals": [s.as_dict() for s in signals]}
+
+        for signal in signals:
+            store.save_evidence(
+                EvidenceLink(
+                    evidence_id=f"EVD-{signal.signal_id}",
+                    signal_id=signal.signal_id,
+                    event_id=signal.event_id,
+                    relationship="detected_from",
+                    detector_version=signal.detector_version,
+                    created_at=signal.detected_at,
+                )
+            )
+
+        return {
+            "event_count": len(events),
+            "signal_count": len(signals),
+            "signals": [signal.as_dict() for signal in signals],
+        }
+
+    @app.get("/v1/signals/{signal_id}/evidence")
+    def get_signal_evidence(signal_id: str) -> dict[str, Any]:
+        evidence = store.list_evidence(signal_id)
+        if not evidence:
+            raise HTTPException(status_code=404, detail="evidence not found")
+
+        links = []
+        for item in evidence:
+            event = store.get(item.event_id)
+            links.append(
+                {
+                    "evidence": item.as_dict(),
+                    "source_event": None if event is None else event.as_dict(),
+                }
+            )
+
+        return {"signal_id": signal_id, "links": links}
 
     return app
 

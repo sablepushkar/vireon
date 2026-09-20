@@ -43,6 +43,7 @@ class Signal:
     signal_type: str
     severity: str
     reason: str
+    detector_version: str
     detected_at: datetime
 
     def as_dict(self) -> dict[str, object]:
@@ -52,5 +53,26 @@ class Signal:
             "signal_type": self.signal_type,
             "severity": self.severity,
             "reason": self.reason,
+            "detector_version": self.detector_version,
             "detected_at": self.detected_at.isoformat(),
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class EvidenceLink:
+    evidence_id: str
+    signal_id: str
+    event_id: str
+    relationship: str
+    detector_version: str
+    created_at: datetime
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "evidence_id": self.evidence_id,
+            "signal_id": self.signal_id,
+            "event_id": self.event_id,
+            "relationship": self.relationship,
+            "detector_version": self.detector_version,
+            "created_at": self.created_at.isoformat(),
         }

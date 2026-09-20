@@ -6,8 +6,11 @@ from .core.models import PharmaEvent, Signal
 from .core.validation import validate_event
 
 
+DETECTOR_VERSION = "threshold-rules/0.2"
+
+
 def detect_signals(events: list[PharmaEvent]) -> list[Signal]:
-    """Apply deterministic V0.1 rules to validated events."""
+    """Apply deterministic, versioned VIREON rules to validated events."""
     signals: list[Signal] = []
 
     for event in events:
@@ -22,7 +25,11 @@ def detect_signals(events: list[PharmaEvent]) -> list[Signal]:
                     event_id=event.event_id,
                     signal_type="biomarker_elevation",
                     severity="moderate",
-                    reason="biomarker_x is at or above the V0.1 threshold of 130",
+                    reason=(
+                        "biomarker_x is at or above the VIREON 0.2 "
+                        "demonstration threshold of 130"
+                    ),
+                    detector_version=DETECTOR_VERSION,
                     detected_at=datetime.now(timezone.utc),
                 )
 
@@ -34,7 +41,11 @@ def detect_signals(events: list[PharmaEvent]) -> list[Signal]:
                     event_id=event.event_id,
                     signal_type="elevated_heart_rate",
                     severity="moderate",
-                    reason="heart_rate is at or above the V0.1 threshold of 120",
+                    reason=(
+                        "heart_rate is at or above the VIREON 0.2 "
+                        "demonstration threshold of 120"
+                    ),
+                    detector_version=DETECTOR_VERSION,
                     detected_at=datetime.now(timezone.utc),
                 )
 
