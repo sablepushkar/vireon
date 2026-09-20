@@ -18,3 +18,8 @@ Open: http://127.0.0.1:8000/docs
 
 ## Interview points
 Explain provenance, versioned analytical logic, human review, synthetic data, replaceable infrastructure adapters, and the distinction between monitoring indicators and clinical conclusions.
+
+
+## V1.1 additions
+
+Signal detection now persists signal and evidence lineage. The audit endpoint exposes event, signal, and evidence records. Interoperability endpoints project synthetic events toward FHIR Observation and an OMOP-shaped mapping boundary without claiming terminology mapping or certification.

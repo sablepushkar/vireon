@@ -1,66 +1,37 @@
 from __future__ import annotations
-
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-
-from vireon.core.models import EventType, PharmaEvent
+from vireon.core.models import EventType, EvidenceLink, PharmaEvent, Signal
 from vireon.storage.sqlite import EventStore
 
-
 class StorageTests(unittest.TestCase):
-    def test_event_survives_store_recreation(self) -> None:
+    def _event(self) -> PharmaEvent:
+        return PharmaEvent("E-PERSIST-001", "P-001", "S-01", EventType.VITAL,
+                            datetime.now(timezone.utc)-timedelta(minutes=1), {"heart_rate":74.0}, "test")
+    def test_event_survives_store_recreation(self):
         with tempfile.TemporaryDirectory() as directory:
-            database = Path(directory) / "nested" / "vireon.db"
-            original = PharmaEvent(
-                event_id="E-PERSIST-001",
-                patient_id="P-001",
-                site_id="S-01",
-                event_type=EventType.VITAL,
-                timestamp=datetime.now(timezone.utc) - timedelta(minutes=1),
-                values={"heart_rate": 74.0},
-                source="test",
-            )
-
-            EventStore(database).save(original)
-            restored = EventStore(database).get(original.event_id)
-
-            self.assertIsNotNone(restored)
-            assert restored is not None
+            database=Path(directory)/"nested"/"vireon.db"; original=self._event()
+            EventStore(database).save(original); restored=EventStore(database).get(original.event_id)
+            self.assertIsNotNone(restored); assert restored is not None
             self.assertEqual(restored.as_dict(), original.as_dict())
-
-    def test_save_updates_existing_event(self) -> None:
+    def test_signal_evidence_and_audit_persist(self):
         with tempfile.TemporaryDirectory() as directory:
-            database = Path(directory) / "vireon.db"
-            store = EventStore(database)
-            event = PharmaEvent(
-                event_id="E-UPDATE-001",
-                patient_id="P-002",
-                site_id="S-02",
-                event_type=EventType.VITAL,
-                timestamp=datetime.now(timezone.utc) - timedelta(minutes=1),
-                values={"heart_rate": 70.0},
-                source="test",
-            )
+            database=Path(directory)/"vireon.db"; store=EventStore(database); event=self._event(); store.save(event)
+            signal=Signal("SIG-E-PERSIST-001",event.event_id,"test_signal","moderate","test","test/1.0",datetime.now(timezone.utc))
+            store.save_signal(signal)
+            store.save_evidence(EvidenceLink("EVD-SIG-E-PERSIST-001",signal.signal_id,event.event_id,"detected_from",signal.detector_version,signal.detected_at))
+            restored=EventStore(database)
+            self.assertEqual(restored.get_signal(signal.signal_id).as_dict(), signal.as_dict())
+            self.assertEqual(len(restored.list_evidence(signal.signal_id)),1)
+            self.assertGreaterEqual(len(restored.list_audit()),3)
+    def test_save_updates_existing_event(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store=EventStore(Path(directory)/"vireon.db"); event=self._event(); store.save(event)
+            updated=PharmaEvent(event.event_id,event.patient_id,event.site_id,event.event_type,event.timestamp,{"heart_rate":82.0},event.source)
+            store.save(updated); restored=store.get(event.event_id)
+            self.assertIsNotNone(restored); assert restored is not None
+            self.assertEqual(restored.values["heart_rate"],82.0)
 
-            store.save(event)
-            updated = PharmaEvent(
-                event_id=event.event_id,
-                patient_id=event.patient_id,
-                site_id=event.site_id,
-                event_type=event.event_type,
-                timestamp=event.timestamp,
-                values={"heart_rate": 82.0},
-                source=event.source,
-            )
-            store.save(updated)
-
-            restored = store.get(event.event_id)
-            self.assertIsNotNone(restored)
-            assert restored is not None
-            self.assertEqual(restored.values["heart_rate"], 82.0)
-
-
-if __name__ == "__main__":
-    unittest.main()
+if __name__=="__main__": unittest.main()

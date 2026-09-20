@@ -19,3 +19,8 @@ FDA/EMA's January 2026 AI principles emphasize human-centric design, risk-based 
 
 ## Non-goals
 No diagnosis, treatment recommendation, autonomous clinical decision, regulatory approval prediction, patient data, or claim of regulatory compliance.
+
+
+## V1.1 engineering hardening
+
+V1.1 adds persistent signal records, foreign-key enforcement, append-only audit records, stronger deterministic monitoring metrics, input-boundary validation, and explicit FHIR/OMOP interoperability adapters. The adapters intentionally do not invent terminology mappings.

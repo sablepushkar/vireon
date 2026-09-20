@@ -22,7 +22,7 @@ V0.6 — Digital Measure Validation: synthetic digital observations, completenes
 
 V0.7 — Trial Integrity Engine: site-level monitoring of missingness, protocol-deviation patterns, and timestamp-collision patterns.
 
-V1.0 — Integrated Lifecycle Prototype: discovery -> preclinical -> Phase I -> Phase II -> Phase III -> regulatory -> manufacturing -> post-market representation, shared provenance, and human-review boundaries.
+V1.1 — Integrated Lifecycle Prototype: discovery -> preclinical -> Phase I -> Phase II -> Phase III -> regulatory -> manufacturing -> post-market representation, shared provenance, and human-review boundaries.
 
 ## API
 GET /health
@@ -56,7 +56,7 @@ Use docs/demo.md for a repeatable synthetic walkthrough.
 ## Engineering principles
 Synthetic data first; deterministic tests; explicit provenance; versioned analytical logic; explainable monitoring; human-in-the-loop boundaries; minimal dependencies; replaceable infrastructure adapters; no patient data.
 
-## Post-V1.0 expansion
+## Post-V1.1 expansion
 Streaming adapters, FHIR/OMOP interoperability, stronger statistical drift metrics, device reliability analysis, richer trial-quality rules, signed evidence manifests, graph-database adapters, and controlled model-registry workflows.
 
 ## License

@@ -19,7 +19,6 @@ class SiteIntegrityResult:
     anomaly_score: float
     metrics: dict[str, float]
     flags: tuple[str, ...]
-
     def as_dict(self) -> dict[str, object]:
         return asdict(self)
 
@@ -28,20 +27,30 @@ def assess_site(site_id: str, events: list[TrialEvent]) -> SiteIntegrityResult:
         raise ValueError("site_id must not be empty")
     if not events:
         raise ValueError("events must be non-empty")
+    for event in events:
+        if not event.event_id.strip() or not event.event_type.strip():
+            raise ValueError("trial event_id and event_type must not be empty")
+        if event.site_id != site_id:
+            raise ValueError("all trial events must belong to the requested site")
+        if event.timestamp.tzinfo is None:
+            raise ValueError("trial timestamps must be timezone-aware")
     missing_rate = sum(not e.complete for e in events) / len(events)
     deviation_rate = sum(e.protocol_deviation for e in events) / len(events)
-    duplicate_rate = (len(events) - len({e.timestamp for e in events})) / len(events)
+    duplicate_timestamp_rate = (len(events) - len({e.timestamp for e in events})) / len(events)
+    duplicate_event_rate = (len(events) - len({e.event_id for e in events})) / len(events)
     type_count = len(Counter(e.event_type for e in events))
-    score = min(1.0, 0.50 * missing_rate + 0.35 * deviation_rate + 0.15 * duplicate_rate)
+    score = min(1.0, 0.40 * missing_rate + 0.30 * deviation_rate + 0.15 * duplicate_timestamp_rate + 0.15 * duplicate_event_rate)
     flags: list[str] = []
     if missing_rate >= 0.10:
         flags.append("missing_data_pattern")
     if deviation_rate >= 0.10:
         flags.append("protocol_deviation_pattern")
-    if duplicate_rate >= 0.20:
+    if duplicate_timestamp_rate >= 0.20:
         flags.append("timestamp_collision_pattern")
+    if duplicate_event_rate > 0.0:
+        flags.append("duplicate_event_id_pattern")
     return SiteIntegrityResult(site_id, "review" if flags else "monitor", score, {
         "event_count": float(len(events)), "missing_rate": missing_rate,
-        "protocol_deviation_rate": deviation_rate, "timestamp_collision_rate": duplicate_rate,
-        "distinct_event_types": float(type_count),
+        "protocol_deviation_rate": deviation_rate, "timestamp_collision_rate": duplicate_timestamp_rate,
+        "duplicate_event_id_rate": duplicate_event_rate, "distinct_event_types": float(type_count),
     }, tuple(flags))
