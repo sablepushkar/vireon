@@ -5,12 +5,19 @@ from datetime import datetime, timezone
 from .core.models import PharmaEvent, Signal
 from .core.validation import validate_event
 
-
 DETECTOR_VERSION = "threshold-rules/0.2"
 
 
+def _number(value: object) -> float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    return None
+
+
 def detect_signals(events: list[PharmaEvent]) -> list[Signal]:
-    """Apply deterministic, versioned VIREON rules to validated events."""
+    """Apply deterministic, versioned demonstration rules to validated events."""
     signals: list[Signal] = []
 
     for event in events:
@@ -18,8 +25,8 @@ def detect_signals(events: list[PharmaEvent]) -> list[Signal]:
         signal: Signal | None = None
 
         if event.event_type.value == "lab_result":
-            biomarker = event.values.get("biomarker_x")
-            if isinstance(biomarker, (int, float)) and biomarker >= 130:
+            biomarker = _number(event.values.get("biomarker_x"))
+            if biomarker is not None and biomarker >= 130:
                 signal = Signal(
                     signal_id=f"SIG-{event.event_id}",
                     event_id=event.event_id,
@@ -34,8 +41,8 @@ def detect_signals(events: list[PharmaEvent]) -> list[Signal]:
                 )
 
         elif event.event_type.value == "vital":
-            heart_rate = event.values.get("heart_rate")
-            if isinstance(heart_rate, (int, float)) and heart_rate >= 120:
+            heart_rate = _number(event.values.get("heart_rate"))
+            if heart_rate is not None and heart_rate >= 120:
                 signal = Signal(
                     signal_id=f"SIG-{event.event_id}",
                     event_id=event.event_id,

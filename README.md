@@ -2,62 +2,163 @@
 
 **VIREON — Pharmaceutical Lifecycle Intelligence Engine**
 
-VIREON is a synthetic-data-first research and engineering prototype for evidence-aware pharmaceutical development workflows. It combines event ingestion, signal detection, provenance, model monitoring, digital-measure validation, trial-integrity monitoring, and lifecycle simulation.
+I built VIREON as a research and engineering project around one question: what would it look like to keep evidence, signals, data quality, model monitoring, and trial-workflow information connected across the drug-development lifecycle?
 
-> Safety boundary: VIREON is a portfolio/research prototype. It does not diagnose patients, recommend treatment, make regulatory decisions, or autonomously control clinical workflows. All outputs are monitoring or workflow-simulation artifacts for synthetic data.
+This repository is intentionally a prototype. I am using synthetic data and small deterministic components so I can inspect what each part is doing, test it, and replace pieces later with real infrastructure.
 
-## Complete project
+## What is in it
 
-V0.1 — Event + signal core: typed events, deterministic synthetic generation, validation, rule-based signals, tests.
+The current version is V1.1.
 
-V0.2 — API + persistence: FastAPI, SQLite persistence, event CRUD, API tests, CI.
+- Event ingestion and validation
+- Deterministic signal detection
+- SQLite persistence
+- Signal and evidence provenance
+- Evidence graph generation
+- AI-GUARD style monitoring
+- Digital-measure validation
+- Trial-integrity checks
+- Lifecycle simulation
+- Audit records
+- FHIR and OMOP interoperability boundaries
 
-V0.3 — Provenance-aware signals: versioned detectors, persistent evidence links, evidence retrieval, source-event traceability.
+The main idea is that these are connected pieces, not separate demos.
 
-V0.4 — Evidence Graph: serializable event -> signal -> evidence graph, ready for a future graph-storage adapter.
+For example:
 
-V0.5 — AI-GUARD: context-of-use metadata, reference/current distribution monitoring, missingness-shift monitoring, explainable risk flags.
+event -> signal -> evidence -> audit
 
-V0.6 — Digital Measure Validation: synthetic digital observations, completeness analysis, expected-range checks, review classification.
+and:
 
-V0.7 — Trial Integrity Engine: site-level monitoring of missingness, protocol-deviation patterns, and timestamp-collision patterns.
+data/model checks -> review flags -> human review
 
-V1.1 — Integrated Lifecycle Prototype: discovery -> preclinical -> Phase I -> Phase II -> Phase III -> regulatory -> manufacturing -> post-market representation, shared provenance, and human-review boundaries.
+The project does not make a clinical decision.
+
+## Why the first version is simple
+
+I did not want to start by putting a large AI model in the middle of everything.
+
+The current analytical logic is deliberately small:
+
+- the signal engine uses explicit versioned rules;
+- AI-GUARD compares reference and current distributions;
+- digital measures are checked for missingness and expected ranges;
+- trial integrity is represented through site-level indicators;
+- lifecycle stages are treated as workflow state.
+
+That makes it possible to test the controls first and then replace the simple logic with more advanced methods later.
+
+## Lifecycle
+
+Discovery -> Preclinical -> Phase I -> Phase II -> Phase III -> Regulatory -> Manufacturing -> Post-market
+
+The lifecycle module is only a workflow simulation. It does not predict approval, recommend treatment, or claim clinical validity.
 
 ## API
-GET /health
-POST /v1/events
-GET /v1/events
-GET /v1/events/{event_id}
-POST /v1/signals/detect
-GET /v1/signals/{signal_id}/evidence
-GET /v1/evidence/graph
-POST /v1/ai-guard/assess
-POST /v1/digital-measures/validate
-POST /v1/trial-integrity/sites/{site_id}/assess
-GET /v1/lifecycle/{candidate_id}
 
-Run: uvicorn vireon.api:app --reload
-Then open /docs.
+Core:
+- GET /health
+- POST /v1/events
+- GET /v1/events
+- GET /v1/events/{event_id}
 
-## Research alignment
-The architecture is aligned with current themes in pharmaceutical AI: clear context of use, risk-based assessment, data governance/documentation, lifecycle management, human-centric oversight, digital measures, and real-time trial infrastructure. FDA and EMA published joint AI practice principles in January 2026, and FDA continues active work on digital health technologies and real-time clinical trials.
+Signals and evidence:
+- POST /v1/signals/detect
+- GET /v1/signals
+- GET /v1/signals/{signal_id}
+- GET /v1/signals/{signal_id}/evidence
+- GET /v1/evidence/graph
+- GET /v1/audit
 
-VIREON does not claim regulatory compliance or clinical validity. It demonstrates engineering controls inspired by these themes.
+Monitoring:
+- POST /v1/ai-guard/assess
+- POST /v1/digital-measures/validate
+- POST /v1/trial-integrity/sites/{site_id}/assess
+- GET /v1/lifecycle/{candidate_id}
 
-## Development
+Interoperability boundaries:
+- GET /v1/interop/fhir/events/{event_id}
+- GET /v1/interop/omop/events/{event_id}
+
+The FHIR and OMOP endpoints are mapping boundaries for the prototype. Local synthetic fields are not presented as fully mapped production terminology.
+
+## Run it
+
 Requires Python 3.11+.
-Install: python -m pip install -e ".[test]"
-Test: python -m unittest discover -s tests -v
 
-## Portfolio demo
-Use docs/demo.md for a repeatable synthetic walkthrough.
+Install:
+python -m pip install -e ".[test]"
 
-## Engineering principles
-Synthetic data first; deterministic tests; explicit provenance; versioned analytical logic; explainable monitoring; human-in-the-loop boundaries; minimal dependencies; replaceable infrastructure adapters; no patient data.
+Test:
+python -m unittest discover -s tests -v
 
-## Post-V1.1 expansion
-Streaming adapters, FHIR/OMOP interoperability, stronger statistical drift metrics, device reliability analysis, richer trial-quality rules, signed evidence manifests, graph-database adapters, and controlled model-registry workflows.
+Run:
+uvicorn vireon.api:app --reload
+
+Then open http://127.0.0.1:8000/docs
+
+The repeatable walkthrough is in docs/demo.md.
+
+## Project structure
+
+src/vireon/
+    api.py
+    ai_guard.py
+    digital_measures.py
+    evidence_graph.py
+    interop.py
+    lifecycle.py
+    signal_engine.py
+    simulator.py
+    trial_integrity.py
+    core/
+    storage/
+
+tests/
+docs/
+
+## What I want to build next
+
+The next layer is not just adding more AI. I want to make the architecture closer to a real platform that moves, checks, stores, and traces data:
+
+- streaming/event ingestion;
+- stronger statistical drift monitoring;
+- device reliability analysis;
+- richer trial-quality rules;
+- controlled model and evidence registries;
+- signed evidence manifests;
+- graph-storage adapters;
+- clearer FHIR/OMOP terminology mapping;
+- eventually a deployable multi-service version.
+
+## Boundaries
+
+VIREON is a portfolio/research prototype.
+
+It does not:
+- diagnose patients;
+- recommend treatment;
+- make autonomous clinical decisions;
+- predict regulatory approval;
+- use patient data;
+- claim regulatory compliance or clinical validation.
+
+The goal is to demonstrate the engineering patterns first.
+
+## Versions
+
+- V0.1 — event and signal core
+- V0.2 — API and persistence
+- V0.3 — provenance-aware signals
+- V0.4 — evidence graph
+- V0.5 — AI-GUARD
+- V0.6 — digital-measure validation
+- V0.7 — trial-integrity engine
+- V1.0 — integrated lifecycle prototype
+- V1.1 — storage, audit, validation, and interoperability hardening
+
+See CHANGELOG.md for the short history.
 
 ## License
+
 MIT
