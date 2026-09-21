@@ -16,6 +16,8 @@ from .core.models import EventType, EvidenceLink, PharmaEvent
 from .core.validation import EventValidationError, validate_event
 from .digital_measures import validate_digital_measure
 from .evidence_graph import EvidenceGraph
+from .evidence_manifest import build_manifest
+from .registry import Registry
 from .interop import to_fhir_observation, to_omop_measurements
 from .lifecycle import simulate_lifecycle
 from .signal_engine import detect_signals
@@ -204,6 +206,26 @@ def create_app(database_path: str | Path | None = None, config: VireonConfig | N
                 graph.add_evidence(evidence)
 
         return graph.as_dict()
+
+    @app.get("/v1/evidence/manifest/{signal_id}")
+    def evidence_manifest(signal_id: str) -> dict[str, object]:
+        signal = store.get_signal(signal_id)
+        if signal is None:
+            raise HTTPException(status_code=404, detail="signal not found")
+        evidence = store.list_evidence(signal_id)
+        manifest = build_manifest(
+            dataset="sqlite-event-store",
+            detector_version=signal.detector_version,
+            input_ids=[signal.event_id],
+            signal_ids=[signal.signal_id],
+            evidence_ids=[item.evidence_id for item in evidence],
+        )
+        return manifest.as_dict()
+
+    @app.get("/v1/registry")
+    def registry() -> dict[str, object]:
+        items = Registry().list()
+        return {"count": len(items), "items": [item.as_dict() for item in items]}
 
     @app.get("/v1/audit")
     def audit_log(

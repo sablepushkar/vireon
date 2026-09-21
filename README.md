@@ -162,3 +162,30 @@ See CHANGELOG.md for the short history.
 ## License
 
 MIT
+
+
+## V2.0 portfolio layer
+
+V2.0 adds a developer-facing layer around the V1.1 engine:
+
+- configurable thresholds and environment settings
+- reusable descriptive statistics and distribution summaries
+- deterministic synthetic scenario explorer
+- model/data/detector registry
+- reproducible evidence manifests
+- vireon command-line interface
+- lightweight browser dashboard at /dashboard
+- scenario API at /v1/scenarios
+- registry API at /v1/registry
+- manifest API at /v1/evidence/manifest/{signal_id}
+- expanded portfolio documentation
+
+### Quick demo
+
+    pip install -e ".[test]"
+    vireon simulate --scenario biomarker-signal
+    uvicorn vireon.api:app --reload
+
+Then open /dashboard.
+
+V2.0 is intentionally a development-stage portfolio system. It demonstrates architecture, testing, provenance and domain-aware engineering rather than production clinical deployment.

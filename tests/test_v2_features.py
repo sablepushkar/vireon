@@ -42,9 +42,21 @@ class V2FeatureTests(unittest.TestCase):
             self.assertIn("biomarker-signal", scenarios.json()["scenarios"])
             run = client.post("/v1/scenarios/biomarker-signal/run")
             self.assertEqual(run.status_code, 200)
+            client.post("/v1/events", json={
+                "event_id": "MAN-E1", "patient_id": "P1", "site_id": "S1",
+                "event_type": "lab_result",
+                "timestamp": "2026-09-21T03:00:00+00:00",
+                "values": {"biomarker_x": 140}, "source": "test"
+            })
+            client.post("/v1/signals/detect")
+            manifest = client.get("/v1/evidence/manifest/SIG-MAN-E1")
+            self.assertEqual(manifest.status_code, 200)
+            self.assertTrue(manifest.json()["manifest_id"].startswith("MAN-"))
             dashboard = client.get("/dashboard")
             self.assertEqual(dashboard.status_code, 200)
             self.assertIn("Scenario Explorer", dashboard.text)
+            registry = client.get("/v1/registry")
+            self.assertEqual(registry.status_code, 200)
 
 
 if __name__ == "__main__":
