@@ -5,10 +5,13 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query, status
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 from . import __version__
 from .ai_guard import ModelSpec, assess_model
+from .config import VireonConfig, load_config
+from .scenarios import SCENARIOS, run_scenario
 from .core.models import EventType, EvidenceLink, PharmaEvent
 from .core.validation import EventValidationError, validate_event
 from .digital_measures import validate_digital_measure
@@ -77,7 +80,9 @@ def _to_domain(request: EventRequest) -> PharmaEvent:
     return event
 
 
-def create_app(database_path: str | Path = "vireon.db") -> FastAPI:
+def create_app(database_path: str | Path | None = None, config: VireonConfig | None = None) -> FastAPI:
+    config = config or load_config()
+    database_path = database_path or config.database_path
     app = FastAPI(
         title="VIREON",
         version=__version__,
@@ -121,7 +126,11 @@ def create_app(database_path: str | Path = "vireon.db") -> FastAPI:
         limit: int = Query(default=1000, ge=1, le=1000),
     ) -> dict[str, Any]:
         events = store.list_events(limit)
-        signals = detect_signals(events)
+        signals = detect_signals(
+            events,
+            biomarker_x_threshold=config.biomarker_x_threshold,
+            heart_rate_threshold=config.heart_rate_threshold,
+        )
 
         for signal in signals:
             store.save_signal(signal)
@@ -292,6 +301,36 @@ def create_app(database_path: str | Path = "vireon.db") -> FastAPI:
             "safety_boundary": (
                 "workflow simulation only; no clinical or regulatory decision is produced"
             ),
+        }
+
+    @app.get("/dashboard", response_class=HTMLResponse)
+    def dashboard() -> str:
+        dashboard_path = Path(__file__).resolve().parents[2] / "frontend" / "index.html"
+        if not dashboard_path.exists():
+            raise HTTPException(status_code=404, detail="dashboard not found")
+        return dashboard_path.read_text(encoding="utf-8")
+
+    @app.get("/v1/scenarios")
+    def list_scenarios() -> dict[str, object]:
+        return {"count": len(SCENARIOS), "scenarios": SCENARIOS}
+
+    @app.post("/v1/scenarios/{scenario}/run")
+    def run_synthetic_scenario(scenario: str, seed: int = Query(default=42, ge=0, le=1_000_000)) -> dict[str, object]:
+        try:
+            return run_scenario(scenario, seed).as_dict()
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    @app.get("/v1/config")
+    def config_summary() -> dict[str, object]:
+        return {
+            "environment": config.environment,
+            "database_path": str(config.database_path),
+            "thresholds": {
+                "biomarker_x": config.biomarker_x_threshold,
+                "heart_rate": config.heart_rate_threshold,
+            },
+            "safety_boundary": "configuration is for synthetic portfolio workflows only",
         }
 
     @app.get("/v1/interop/fhir/events/{event_id}")
