@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime
+from hashlib import sha256
+import json
 from pathlib import Path
 from typing import Any
 
@@ -109,7 +111,7 @@ def create_app(database_path: str | Path | None = None, config: VireonConfig | N
         return event.as_dict()
 
     @app.get("/v1/events")
-    def list_events(limit: int = Query(default=100, ge=1, le=1000)) -> dict[str, Any]:
+    def list_events(limit: int = Query(default=min(100, config.max_query_limit), ge=1, le=config.max_query_limit)) -> dict[str, Any]:
         events = store.list_events(limit)
         return {
             "count": len(events),
@@ -125,7 +127,7 @@ def create_app(database_path: str | Path | None = None, config: VireonConfig | N
 
     @app.post("/v1/signals/detect")
     def detect_current_signals(
-        limit: int = Query(default=1000, ge=1, le=1000),
+        limit: int = Query(default=config.max_query_limit, ge=1, le=config.max_query_limit),
     ) -> dict[str, Any]:
         events = store.list_events(limit)
         signals = detect_signals(
@@ -154,7 +156,7 @@ def create_app(database_path: str | Path | None = None, config: VireonConfig | N
         }
 
     @app.get("/v1/signals")
-    def list_signals(limit: int = Query(default=100, ge=1, le=1000)) -> dict[str, Any]:
+    def list_signals(limit: int = Query(default=min(100, config.max_query_limit), ge=1, le=config.max_query_limit)) -> dict[str, Any]:
         signals = store.list_signals(limit)
         return {
             "count": len(signals),
@@ -191,7 +193,7 @@ def create_app(database_path: str | Path | None = None, config: VireonConfig | N
 
     @app.get("/v1/evidence/graph")
     def evidence_graph(
-        limit: int = Query(default=1000, ge=1, le=1000),
+        limit: int = Query(default=config.max_query_limit, ge=1, le=config.max_query_limit),
     ) -> dict[str, object]:
         graph = EvidenceGraph()
         events = store.list_events(limit)
@@ -213,12 +215,26 @@ def create_app(database_path: str | Path | None = None, config: VireonConfig | N
         if signal is None:
             raise HTTPException(status_code=404, detail="signal not found")
         evidence = store.list_evidence(signal_id)
+        event = store.get(signal.event_id)
+        fingerprint_payload = {
+            "event": event.as_dict() if event is not None else None,
+            "signal": signal.as_dict(),
+            "evidence": [item.as_dict() for item in evidence],
+            "thresholds": {
+                "biomarker_x_threshold": config.biomarker_x_threshold,
+                "heart_rate_threshold": config.heart_rate_threshold,
+            },
+        }
+        content_fingerprint = sha256(
+            json.dumps(fingerprint_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
         manifest = build_manifest(
             dataset="sqlite-event-store",
             detector_version=signal.detector_version,
             input_ids=[signal.event_id],
             signal_ids=[signal.signal_id],
             evidence_ids=[item.evidence_id for item in evidence],
+            content_fingerprint=content_fingerprint,
         )
         return manifest.as_dict()
 
@@ -229,7 +245,7 @@ def create_app(database_path: str | Path | None = None, config: VireonConfig | N
 
     @app.get("/v1/audit")
     def audit_log(
-        limit: int = Query(default=100, ge=1, le=1000),
+        limit: int = Query(default=min(100, config.max_query_limit), ge=1, le=config.max_query_limit),
     ) -> dict[str, object]:
         records = store.list_audit(limit)
         return {"count": len(records), "records": records}

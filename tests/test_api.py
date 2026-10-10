@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from fastapi.testclient import TestClient
 from vireon.api import create_app
+from vireon.config import VireonConfig
 
 class ApiTests(unittest.TestCase):
     def setUp(self):
@@ -15,6 +16,16 @@ class ApiTests(unittest.TestCase):
         return {"event_id":"E-API-001","patient_id":"P-001","site_id":"S-01","event_type":"lab_result",
                 "timestamp":(datetime.now(timezone.utc)-timedelta(minutes=1)).isoformat(),
                 "values":{"biomarker_x":135.0},"source":"test"}
+    def test_configured_query_limit_is_enforced(self):
+        app = create_app(Path(self.tempdir.name)/"limited.db", config=VireonConfig(max_query_limit=2))
+        client = TestClient(app)
+        self.assertEqual(client.get("/v1/events?limit=2").status_code, 200)
+        self.assertEqual(client.get("/v1/events?limit=3").status_code, 422)
+
+    def test_non_finite_threshold_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "finite number"):
+            VireonConfig(biomarker_x_threshold=float("nan"))
+
     def test_health_and_event(self):
         self.assertEqual(self.client.get("/health").status_code,200)
         self.assertEqual(self.client.post("/v1/events",json=self._event()).status_code,201)

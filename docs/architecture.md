@@ -1,4 +1,4 @@
-# VIREON Architecture — V1.1
+# VIREON Advanced — Architecture
 
 I am keeping VIREON as a set of small modules with clear boundaries. The first versions are intentionally simple so each part can be tested before adding streaming infrastructure, advanced statistics, or external services.
 
@@ -107,7 +107,7 @@ source event -> detection -> evidence -> audit
 
 ## What is deliberately not here yet
 
-There is no message broker, distributed event bus, real clinical-data connector, model registry, graph database, terminology service, automated clinical decision system, or regulatory submission system.
+There is no message broker, distributed event bus, real clinical-data connector, graph database, terminology service, automated clinical decision system, or regulatory submission system. A lightweight local registry and evidence-manifest generator exist, but they are prototype components rather than governed production services.
 
 Those are later architecture layers. I do not want to fake them inside a small prototype.
 
@@ -115,4 +115,4 @@ Those are later architecture layers. I do not want to fake them inside a small p
 
 The long-term direction is to replace individual in-process components with deployable services while keeping the same domain contracts.
 
-The next engineering layer is therefore around event streaming and idempotency, stronger statistical monitoring, controlled registries and manifests, healthcare interoperability, deployment, and observability.
+If development resumes, the next engineering layer should prioritize event idempotency, stronger statistical monitoring, explicit terminology mapping, and deployment/observability only after the current local workflows remain stable.

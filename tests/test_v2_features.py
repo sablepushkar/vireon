@@ -22,6 +22,12 @@ class V2FeatureTests(unittest.TestCase):
         b = build_manifest("demo", "threshold-rules/0.2", ["e1"], ["s1"], ["v1"])
         self.assertEqual(a.manifest_id, b.manifest_id)
 
+    def test_manifest_identity_includes_content_fingerprint(self):
+        base = ("demo", "threshold-rules/0.2", ["e1"], ["s1"], ["v1"])
+        first = build_manifest(*base, content_fingerprint="content-a")
+        second = build_manifest(*base, content_fingerprint="content-b")
+        self.assertNotEqual(first.manifest_id, second.manifest_id)
+
     def test_registry_round_trip(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "registry.json"

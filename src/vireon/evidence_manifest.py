@@ -16,6 +16,7 @@ class EvidenceManifest:
     input_ids: list[str]
     signal_ids: list[str]
     evidence_ids: list[str]
+    content_fingerprint: str = ""
     review_status: str = "pending"
 
     def as_dict(self) -> dict[str, Any]:
@@ -29,11 +30,19 @@ def build_manifest(
     signal_ids: Sequence[str],
     evidence_ids: Sequence[str],
     review_status: str = "pending",
+    content_fingerprint: str = "",
 ) -> EvidenceManifest:
-    payload = "|".join([
-        dataset, detector_version, *input_ids, *signal_ids, *evidence_ids, review_status,
-    ])
-    manifest_id = "MAN-" + sha256(payload.encode()).hexdigest()[:16]
+    payload = {
+        "dataset": dataset,
+        "detector_version": detector_version,
+        "input_ids": list(input_ids),
+        "signal_ids": list(signal_ids),
+        "evidence_ids": list(evidence_ids),
+        "review_status": review_status,
+        "content_fingerprint": content_fingerprint,
+    }
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    manifest_id = "MAN-" + sha256(canonical.encode("utf-8")).hexdigest()[:16]
     return EvidenceManifest(
         manifest_id=manifest_id,
         generated_at=datetime.now(timezone.utc).isoformat(),
@@ -42,6 +51,7 @@ def build_manifest(
         input_ids=list(input_ids),
         signal_ids=list(signal_ids),
         evidence_ids=list(evidence_ids),
+        content_fingerprint=content_fingerprint,
         review_status=review_status,
     )
 

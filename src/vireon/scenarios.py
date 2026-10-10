@@ -44,9 +44,9 @@ SCENARIOS = {
 }
 
 
-def _events(name: str, seed: int) -> list[PharmaEvent]:
+def _events(name: str, seed: int, scenario_time: datetime) -> list[PharmaEvent]:
     rng = Random(seed)
-    now = datetime.now(timezone.utc)
+    now = scenario_time
     values = []
     for i in range(12):
         biomarker = 105 + rng.uniform(-8, 8)
@@ -67,12 +67,15 @@ def _events(name: str, seed: int) -> list[PharmaEvent]:
     return values
 
 
-def run_scenario(name: str, seed: int = 42) -> ScenarioResult:
+def run_scenario(name: str, seed: int = 42, evaluated_at: datetime | None = None) -> ScenarioResult:
     key = name.strip().lower()
     if key not in SCENARIOS:
         raise ValueError(f"unknown scenario: {name}; choose one of {sorted(SCENARIOS)}")
-    events = _events(key, seed)
-    signals = detect_signals(events)
+    scenario_time = evaluated_at or datetime(2026, 1, 1, tzinfo=timezone.utc)
+    if scenario_time.tzinfo is None or scenario_time.utcoffset() is None:
+        raise ValueError("evaluated_at must be timezone-aware")
+    events = _events(key, seed, scenario_time)
+    signals = detect_signals(events, evaluated_at=scenario_time)
     findings: list[dict[str, object]] = [s.as_dict() for s in signals]
     metrics: dict[str, object] = {"seed": seed, "available_scenarios": sorted(SCENARIOS)}
 

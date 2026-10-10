@@ -4,7 +4,7 @@ VIREON includes intentionally small FHIR and OMOP boundary demonstrations.
 
 ## FHIR
 
-GET /v1/interop/fhir/events/{event_id} returns an illustrative FHIR Observation. FHIR R5 defines Observation as a resource for measurements and simple assertions about a patient, device or other subject. VIREON only demonstrates the mapping boundary; it does not implement full terminology, profiles, validation or conformance.
+GET /v1/interop/fhir/events/{event_id} returns an illustrative FHIR Observation. FHIR R4 defines Observation as a resource for measurements and simple assertions about a patient, device or other subject. VIREON only demonstrates the mapping boundary; it does not implement full terminology, profiles, validation or conformance.
 
 ## OMOP
 

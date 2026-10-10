@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 import os
 from pathlib import Path
 
@@ -12,6 +13,13 @@ class VireonConfig:
     heart_rate_threshold: float = 120.0
     max_query_limit: int = 1000
     environment: str = "development"
+
+    def __post_init__(self) -> None:
+        for name, value in (("biomarker_x_threshold", self.biomarker_x_threshold), ("heart_rate_threshold", self.heart_rate_threshold)):
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not isfinite(value):
+                raise ValueError(f"{name} must be a finite number")
+        if isinstance(self.max_query_limit, bool) or not isinstance(self.max_query_limit, int) or not 1 <= self.max_query_limit <= 1000:
+            raise ValueError("max_query_limit must be between 1 and 1000")
 
     @classmethod
     def from_env(cls) -> "VireonConfig":

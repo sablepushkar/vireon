@@ -149,7 +149,7 @@ class EventStore:
                 """
                 SELECT payload
                 FROM events
-                ORDER BY json_extract(payload, '$.timestamp') DESC
+                ORDER BY julianday(json_extract(payload, '$.timestamp')) DESC
                 LIMIT ?
                 """,
                 (limit,),
@@ -167,10 +167,22 @@ class EventStore:
             ).fetchone() is None:
                 raise ValueError("signal event_id does not exist")
 
-            existed = connection.execute(
-                "SELECT 1 FROM signals WHERE signal_id = ?",
+            existing = connection.execute(
+                "SELECT event_id, payload FROM signals WHERE signal_id = ?",
                 (signal.signal_id,),
             ).fetchone()
+            if existing is not None:
+                prior_payload = json.loads(existing["payload"])
+                has_evidence = connection.execute(
+                    "SELECT 1 FROM evidence_links WHERE signal_id = ? LIMIT 1",
+                    (signal.signal_id,),
+                ).fetchone() is not None
+                if has_evidence and (
+                    existing["event_id"] != signal.event_id
+                    or prior_payload.get("detector_version") != signal.detector_version
+                ):
+                    raise ValueError("cannot change a signal's event or detector version after evidence is linked")
+            existed = existing is not None
 
             connection.execute(
                 """
@@ -216,7 +228,7 @@ class EventStore:
                 """
                 SELECT payload
                 FROM signals
-                ORDER BY json_extract(payload, '$.detected_at') DESC
+                ORDER BY julianday(json_extract(payload, '$.detected_at')) DESC
                 LIMIT ?
                 """,
                 (limit,),
@@ -282,7 +294,7 @@ class EventStore:
                        detector_version, created_at
                 FROM evidence_links
                 WHERE signal_id = ?
-                ORDER BY created_at ASC
+                ORDER BY julianday(created_at) ASC
                 """,
                 (signal_id,),
             ).fetchall()
