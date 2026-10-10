@@ -1,37 +1,37 @@
-# VIREON — STUDY A.
+# Project VIREON Advanced
 
 **Pharmaceutical Lifecycle Intelligence Engine**
 
-VIREON is a research-and-engineering prototype for connecting event data, deterministic signals, evidence provenance, audit records, and simulated pharmaceutical-development workflows. I am building it around a practical question: can a reviewer trace why a signal appeared, which input it came from, and what checks ran around that data?
+Project VIREON Advanced is my student-built research and engineering prototype for connecting pharmaceutical event data, deterministic review signals, evidence provenance, audit records, and synthetic lifecycle workflows. The core question is practical: can someone reproduce a signal and trace it back to the input that triggered it?
 
-## Current working ground
+## What currently works
 
-- Validated pharmaceutical event objects and deterministic threshold signals.
+- Validated pharmaceutical event objects and deterministic threshold rules.
 - SQLite persistence for the local prototype.
-- Evidence links/graph and audit records.
-- Data/model registry and reproducible evidence manifests.
+- Evidence references/graph and audit records.
+- Data/model registry and evidence manifests.
 - Distribution checks, digital-measure validation, and trial-site integrity indicators.
-- Synthetic lifecycle scenarios and a command-line interface.
-- FastAPI endpoints and a small browser dashboard.
-- FHIR/OMOP mapping boundaries that are explicitly not production terminology integrations.
+- Synthetic lifecycle scenarios, CLI, FastAPI endpoints, and a small browser dashboard.
+- Regression tests for invalid numeric values and thresholds.
+- Optional timezone-aware evaluation timestamps so a fixed input/rule/time combination produces repeatable Signal objects.
 
-## The main flow
+## Main flow
 
 ```text
-Synthetic or submitted event
-        ↓
+Synthetic event
+      ↓
 Domain validation
-        ↓
-Versioned deterministic detector
-        ↓
-Signal + evidence reference
-        ↓
-Persistence / audit / manifest
-        ↓
+      ↓
+Versioned threshold rules
+      ↓
+Signal + source event reference
+      ↓
+Persistence / audit / evidence manifest
+      ↓
 Human review in API or dashboard
 ```
 
-The components are intentionally deterministic at this stage. A reviewer should be able to reproduce a result without needing an opaque model call.
+The components are deterministic at this stage. The system does not need an opaque model call to explain why a rule fired.
 
 ## Quick start
 
@@ -45,22 +45,31 @@ vireon registry list
 uvicorn vireon.api:app --reload
 ```
 
-Then open `http://127.0.0.1:8000/docs` or the local `/dashboard` route. See `docs/demo.md` for a repeatable walkthrough.
+Then open `http://127.0.0.1:8000/docs` or the local `/dashboard` route. See `docs/demo.md` for the current workflow and `docs/replay.md` for repeatable rule evaluation.
 
-## STUDY A. — focus of this update
+## What the Advanced update adds
 
-This pass strengthens the boring-but-important boundary checks: numeric values and thresholds must be finite, and extreme numeric inputs must not crash signal detection during float conversion. Invalid values should be rejected or safely ignored according to the existing API contract, not turn into an unhandled overflow.
+A signal's detection time normally reflects the current invocation. For repeatable tests and comparisons, callers can now supply an explicit timezone-aware `evaluated_at` timestamp. This avoids timestamp differences making otherwise identical results appear different during replay. Naive timestamps are rejected rather than interpreted using the machine's local timezone.
+
+Example:
+
+```python
+from datetime import datetime, timezone
+from vireon.signal_engine import detect_signals
+
+signals = detect_signals(events, evaluated_at=datetime(2026, 10, 10, tzinfo=timezone.utc))
+```
 
 ## Boundaries
 
-VIREON uses synthetic data and local prototype infrastructure. It does not diagnose, recommend treatment, make autonomous clinical decisions, predict regulatory approval, or claim regulatory compliance. Trial-integrity and monitoring outputs are software review flags, not proof of trial misconduct or clinical validity. Do not use real patient data.
+VIREON uses synthetic data and local prototype infrastructure. It does not diagnose, recommend treatment, make autonomous clinical decisions, predict regulatory approval, or claim regulatory compliance. Trial-integrity and monitoring outputs are software review flags, not proof of misconduct or clinical validity. Do not use real patient data.
 
 ## Practical next steps
 
-1. Keep input validation and API error behavior covered by regression tests.
-2. Add stable, machine-readable evaluation fixtures for each signal type.
-3. Improve reproducibility metadata before adding statistical or ML complexity.
+1. Keep API validation and error behavior covered by regression tests.
+2. Add stable machine-readable evaluation fixtures for every signal type.
+3. Record rule versions and evidence references consistently through historical replay.
 4. Keep interoperability mappings explicit about unmapped fields and terminology gaps.
-5. Add deployment and observability only when the local workflow is reliable.
+5. Add deployment and observability only after the local workflow is reliable.
 
-See `DEVELOPERS_NOTES.md` for implementation details and checks.
+See `DEVELOPERS_NOTES.md` for the implementation notes and checks.

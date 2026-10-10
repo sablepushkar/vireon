@@ -35,9 +35,20 @@ def detect_signals(
     *,
     biomarker_x_threshold: float = 130.0,
     heart_rate_threshold: float = 120.0,
+    evaluated_at: datetime | None = None,
 ) -> list[Signal]:
+    """Create review signals; pass ``evaluated_at`` to reproduce a prior run.
+
+    Thresholds and inputs are deterministic. The default timestamp records when
+    this invocation ran; a supplied timezone-aware timestamp makes the complete
+    Signal objects repeatable for tests, comparisons, and historical replays.
+    """
     biomarker_x_threshold = _finite_threshold(biomarker_x_threshold, "biomarker_x_threshold")
     heart_rate_threshold = _finite_threshold(heart_rate_threshold, "heart_rate_threshold")
+    if evaluated_at is None:
+        evaluated_at = datetime.now(timezone.utc)
+    elif evaluated_at.tzinfo is None or evaluated_at.utcoffset() is None:
+        raise ValueError("evaluated_at must be timezone-aware")
     signals: list[Signal] = []
     for event in events:
         validate_event(event)
@@ -53,7 +64,7 @@ def detect_signals(
                     severity="review",
                     reason=f"biomarker_x={biomarker:g} >= threshold={biomarker_x_threshold:g}",
                     detector_version=DETECTOR_VERSION,
-                    detected_at=datetime.now(timezone.utc),
+                    detected_at=evaluated_at,
                 )
             )
 
@@ -66,7 +77,7 @@ def detect_signals(
                     severity="review",
                     reason=f"heart_rate={heart_rate:g} >= threshold={heart_rate_threshold:g}",
                     detector_version=DETECTOR_VERSION,
-                    detected_at=datetime.now(timezone.utc),
+                    detected_at=evaluated_at,
                 )
             )
 

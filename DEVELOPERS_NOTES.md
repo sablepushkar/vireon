@@ -1,27 +1,25 @@
-# VIREON — Developer Notes
+# Project VIREON Advanced — Developer Notes
 
-## STUDY A. — input-boundary hardening
+## Advanced update — reproducible signal evaluation
 
-The current design already has a useful portfolio core: event validation, deterministic signal rules, local persistence, evidence links, audit history, a registry, a CLI, and an API. This update keeps that shape and targets a concrete failure mode instead of adding another disconnected module.
+The previous signal engine validated thresholds and handled extreme numeric inputs, but the timestamp was always generated inside the detector. That made two otherwise identical calls produce different full Signal objects.
 
-### Change
+### What changed
 
-Signal detection converts numeric event values and configured thresholds to floats. Very large Python integers can raise `OverflowError` during conversion, while non-finite thresholds must remain invalid. The detector should handle conversion failures deliberately and report invalid thresholds through a predictable `ValueError`.
+- Added an optional `evaluated_at` argument to `detect_signals`.
+- Kept the current UTC timestamp as the default for normal use.
+- Require an explicit timestamp to be timezone-aware.
+- Added tests that run the same synthetic event twice at the same timestamp and compare the resulting Signal objects.
+- Kept the existing rule logic and default thresholds intact.
 
-### Verification
+### Check it
 
 ```bash
-python -m pip install -e ".[test]"
 python -m unittest discover -s tests -v
-vireon simulate --scenario biomarker-signal
-vireon registry list
 ```
 
-### Design boundaries
+For a reproducible run, pass the same event data, thresholds, detector version, and timezone-aware `evaluated_at` value. This improves replayability; it is not a claim that the overall system is validated or production-ready.
 
-- The detector remains deterministic and versioned.
-- Synthetic scenarios are fixtures, not patient evidence.
-- A signal means “review this input under these rules,” not “a clinical event has been established.”
-- FHIR/OMOP routes remain mapping demonstrations until terminology and field-level coverage are independently verified.
+### Next practical work
 
-Do not call this release production-ready until tests, API smoke checks, and the documented walkthrough have actually been run.
+The next worthwhile milestone is a versioned scenario fixture with expected signals and evidence references. That should come before adding machine learning or expanding the number of dashboard indicators.
