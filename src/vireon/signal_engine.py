@@ -13,8 +13,21 @@ DETECTOR_VERSION = "threshold-rules/0.2"
 def _number(value: object) -> float | None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
-    value = float(value)
-    return value if isfinite(value) else None
+    try:
+        number = float(value)
+    except (OverflowError, TypeError, ValueError):
+        return None
+    return number if isfinite(number) else None
+
+
+def _finite_threshold(value: object, name: str) -> float:
+    try:
+        number = float(value)
+    except (OverflowError, TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be a finite number") from exc
+    if not isfinite(number):
+        raise ValueError(f"{name} must be a finite number")
+    return number
 
 
 def detect_signals(
@@ -23,8 +36,8 @@ def detect_signals(
     biomarker_x_threshold: float = 130.0,
     heart_rate_threshold: float = 120.0,
 ) -> list[Signal]:
-    if not isfinite(float(biomarker_x_threshold)) or not isfinite(float(heart_rate_threshold)):
-        raise ValueError("signal thresholds must be finite")
+    biomarker_x_threshold = _finite_threshold(biomarker_x_threshold, "biomarker_x_threshold")
+    heart_rate_threshold = _finite_threshold(heart_rate_threshold, "heart_rate_threshold")
     signals: list[Signal] = []
     for event in events:
         validate_event(event)
