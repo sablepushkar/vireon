@@ -1,191 +1,75 @@
-# VIREON
+# Project VIREON Advanced
 
-**VIREON — Pharmaceutical Lifecycle Intelligence Engine**
+**Pharmaceutical Lifecycle Intelligence Engine**
 
-I built VIREON as a research and engineering project around one question: what would it look like to keep evidence, signals, data quality, model monitoring, and trial-workflow information connected across the drug-development lifecycle?
+Project VIREON Advanced is my student-built research and engineering prototype for connecting pharmaceutical event data, deterministic review signals, evidence provenance, audit records, and synthetic lifecycle workflows. The core question is practical: can someone reproduce a signal and trace it back to the input that triggered it?
 
-This repository is intentionally a prototype. I am using synthetic data and small deterministic components so I can inspect what each part is doing, test it, and replace pieces later with real infrastructure.
+## What currently works
 
-## What is in it
+- Validated pharmaceutical event objects and deterministic threshold rules.
+- SQLite persistence for the local prototype.
+- Evidence references/graph and audit records.
+- Data/model registry and evidence manifests.
+- Distribution checks, digital-measure validation, and trial-site integrity indicators.
+- Synthetic lifecycle scenarios, CLI, FastAPI endpoints, and a small browser dashboard.
+- Regression tests for invalid numeric values and thresholds.
+- Optional timezone-aware evaluation timestamps so a fixed input/rule/time combination produces repeatable Signal objects.
 
-The current version is V1.1.
+## Main flow
 
-- Event ingestion and validation
-- Deterministic signal detection
-- SQLite persistence
-- Signal and evidence provenance
-- Evidence graph generation
-- AI-GUARD style monitoring
-- Digital-measure validation
-- Trial-integrity checks
-- Lifecycle simulation
-- Audit records
-- FHIR and OMOP interoperability boundaries
+```text
+Synthetic event
+      ↓
+Domain validation
+      ↓
+Versioned threshold rules
+      ↓
+Signal + source event reference
+      ↓
+Persistence / audit / evidence manifest
+      ↓
+Human review in API or dashboard
+```
 
-The main idea is that these are connected pieces, not separate demos.
+The components are deterministic at this stage. The system does not need an opaque model call to explain why a rule fired.
 
-For example:
-
-event -> signal -> evidence -> audit
-
-and:
-
-data/model checks -> review flags -> human review
-
-The project does not make a clinical decision.
-
-## Why the first version is simple
-
-I did not want to start by putting a large AI model in the middle of everything.
-
-The current analytical logic is deliberately small:
-
-- the signal engine uses explicit versioned rules;
-- AI-GUARD compares reference and current distributions;
-- digital measures are checked for missingness and expected ranges;
-- trial integrity is represented through site-level indicators;
-- lifecycle stages are treated as workflow state.
-
-That makes it possible to test the controls first and then replace the simple logic with more advanced methods later.
-
-## Lifecycle
-
-Discovery -> Preclinical -> Phase I -> Phase II -> Phase III -> Regulatory -> Manufacturing -> Post-market
-
-The lifecycle module is only a workflow simulation. It does not predict approval, recommend treatment, or claim clinical validity.
-
-## API
-
-Core:
-- GET /health
-- POST /v1/events
-- GET /v1/events
-- GET /v1/events/{event_id}
-
-Signals and evidence:
-- POST /v1/signals/detect
-- GET /v1/signals
-- GET /v1/signals/{signal_id}
-- GET /v1/signals/{signal_id}/evidence
-- GET /v1/evidence/graph
-- GET /v1/audit
-
-Monitoring:
-- POST /v1/ai-guard/assess
-- POST /v1/digital-measures/validate
-- POST /v1/trial-integrity/sites/{site_id}/assess
-- GET /v1/lifecycle/{candidate_id}
-
-Interoperability boundaries:
-- GET /v1/interop/fhir/events/{event_id}
-- GET /v1/interop/omop/events/{event_id}
-
-The FHIR and OMOP endpoints are mapping boundaries for the prototype. Local synthetic fields are not presented as fully mapped production terminology.
-
-## Run it
+## Quick start
 
 Requires Python 3.11+.
 
-Install:
+```bash
 python -m pip install -e ".[test]"
-
-Test:
 python -m unittest discover -s tests -v
-
-Run:
+vireon simulate --scenario biomarker-signal
+vireon registry list
 uvicorn vireon.api:app --reload
+```
 
-Then open http://127.0.0.1:8000/docs
+Then open `http://127.0.0.1:8000/docs` or the local `/dashboard` route. See `docs/demo.md` for the current workflow and `docs/replay.md` for repeatable rule evaluation.
 
-The repeatable walkthrough is in docs/demo.md.
+## What the Advanced update adds
 
-## Project structure
+A signal's detection time normally reflects the current invocation. For repeatable tests and comparisons, callers can now supply an explicit timezone-aware `evaluated_at` timestamp. This avoids timestamp differences making otherwise identical results appear different during replay. Naive timestamps are rejected rather than interpreted using the machine's local timezone.
 
-src/vireon/
-    api.py
-    ai_guard.py
-    digital_measures.py
-    evidence_graph.py
-    interop.py
-    lifecycle.py
-    signal_engine.py
-    simulator.py
-    trial_integrity.py
-    core/
-    storage/
+Example:
 
-tests/
-docs/
+```python
+from datetime import datetime, timezone
+from vireon.signal_engine import detect_signals
 
-## What I want to build next
-
-The next layer is not just adding more AI. I want to make the architecture closer to a real platform that moves, checks, stores, and traces data:
-
-- streaming/event ingestion;
-- stronger statistical drift monitoring;
-- device reliability analysis;
-- richer trial-quality rules;
-- controlled model and evidence registries;
-- signed evidence manifests;
-- graph-storage adapters;
-- clearer FHIR/OMOP terminology mapping;
-- eventually a deployable multi-service version.
+signals = detect_signals(events, evaluated_at=datetime(2026, 10, 10, tzinfo=timezone.utc))
+```
 
 ## Boundaries
 
-VIREON is a portfolio/research prototype.
+VIREON uses synthetic data and local prototype infrastructure. It does not diagnose, recommend treatment, make autonomous clinical decisions, predict regulatory approval, or claim regulatory compliance. Trial-integrity and monitoring outputs are software review flags, not proof of misconduct or clinical validity. Do not use real patient data.
 
-It does not:
-- diagnose patients;
-- recommend treatment;
-- make autonomous clinical decisions;
-- predict regulatory approval;
-- use patient data;
-- claim regulatory compliance or clinical validation.
+## Practical next steps
 
-The goal is to demonstrate the engineering patterns first.
+1. Keep API validation and error behavior covered by regression tests.
+2. Add stable machine-readable evaluation fixtures for every signal type.
+3. Record rule versions and evidence references consistently through historical replay.
+4. Keep interoperability mappings explicit about unmapped fields and terminology gaps.
+5. Add deployment and observability only after the local workflow is reliable.
 
-## Versions
-
-- V0.1 — event and signal core
-- V0.2 — API and persistence
-- V0.3 — provenance-aware signals
-- V0.4 — evidence graph
-- V0.5 — AI-GUARD
-- V0.6 — digital-measure validation
-- V0.7 — trial-integrity engine
-- V1.0 — integrated lifecycle prototype
-- V1.1 — storage, audit, validation, and interoperability hardening
-
-See CHANGELOG.md for the short history.
-
-## License
-
-MIT
-
-
-## V2.0 portfolio layer
-
-V2.0 adds a developer-facing layer around the V1.1 engine:
-
-- configurable thresholds and environment settings
-- reusable descriptive statistics and distribution summaries
-- deterministic synthetic scenario explorer
-- model/data/detector registry
-- reproducible evidence manifests
-- vireon command-line interface
-- lightweight browser dashboard at /dashboard
-- scenario API at /v1/scenarios
-- registry API at /v1/registry
-- manifest API at /v1/evidence/manifest/{signal_id}
-- expanded portfolio documentation
-
-### Quick demo
-
-    pip install -e ".[test]"
-    vireon simulate --scenario biomarker-signal
-    uvicorn vireon.api:app --reload
-
-Then open /dashboard.
-
-V2.0 is intentionally a development-stage portfolio system. It demonstrates architecture, testing, provenance and domain-aware engineering rather than production clinical deployment.
+See `DEVELOPERS_NOTES.md` for the implementation notes and checks.
