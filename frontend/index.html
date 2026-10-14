@@ -30,7 +30,7 @@ pre{white-space:pre-wrap;overflow:auto}
 <div class="card"><h2>Portfolio boundaries</h2><p>All dashboard data is synthetic. VIREON demonstrates workflow, provenance, monitoring and interoperability patterns; it does not provide clinical, diagnostic, treatment or regulatory decisions.</p></div>
 </main>
 <script>
-async function load(){try{const r=await fetch('/health');const d=await r.json();document.querySelector('#health').textContent=d.status+' · v'+d.version}catch(e){document.querySelector('#health').textContent='API unavailable'}}
+async function load(){try{const r=await fetch('/health');const d=await r.json();document.querySelector('#health').textContent=d.status}catch(e){document.querySelector('#health').textContent='API unavailable'}}
 async function runScenario(){const name=document.querySelector('#scenario').value;const r=await fetch('/v1/scenarios/'+encodeURIComponent(name)+'/run',{method:'POST'});document.querySelector('#result').textContent=JSON.stringify(await r.json(),null,2)}
 load();
 </script></body></html>
