@@ -48,3 +48,7 @@ For repeatable signal evaluation, I can supply an explicit timezone-aware `evalu
 ## Limits
 
 VIREON uses synthetic data and local prototype infrastructure. It does not diagnose, recommend treatment, make clinical decisions, predict regulatory approval or establish regulatory compliance. A monitoring flag is a software-generated signal, not proof of misconduct. Do not use real patient data. I am keeping the project small and testing current behaviour before adding more services or machine-learning features.
+
+---
+
+Copyright © 2026 Pushkar Sudam Sable. See [COPYRIGHT.md](COPYRIGHT.md) for ownership and license notes.
