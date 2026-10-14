@@ -73,3 +73,8 @@ VIREON uses synthetic data and local prototype infrastructure. It does not diagn
 5. Add deployment and observability only after the local workflow is reliable.
 
 See `DEVELOPERS_NOTES.md` for the implementation notes and checks.
+
+
+## Unified workspace
+
+This component is also included in the [Saturnum unified workspace](https://github.com/sablepushkar/Saturnum) under `components/vireon/`, alongside Acoustic-B-Box and a combined CI workflow. This standalone repository remains available for focused development and history.
