@@ -1,51 +1,50 @@
-# Project VIREON
+# VIREON
 
-VIREON is a student project I use to explore how pharmaceutical-style event data can be checked with simple rules and then traced through a local workflow. The examples are synthetic. I built it to practise Python, data validation, APIs, persistence and repeatable testing—not to make claims about a real pharmaceutical system.
+[![Tests](https://github.com/sablepushkar/vireon/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sablepushkar/vireon/actions/workflows/ci.yml)
 
-## What is in the project
+VIREON is a student project I use to explore how pharmaceutical-style event data can be checked with simple rules and traced through a local workflow. The examples are synthetic. I built it to practise Python, validation, APIs, persistence and repeatable testing—not to make claims about a real pharmaceutical system.
+
+## What is included
 
 - Validated event objects and deterministic threshold rules.
 - Local SQLite storage for the prototype.
 - Evidence references and audit-style records.
-- A small registry for data, models and detector versions.
+- A small registry for data, models and detector configurations.
 - Synthetic lifecycle scenarios.
 - Command-line commands, a FastAPI API and a basic browser dashboard.
-- Tests for validation and repeatable signal evaluation.
+- Tests for validation, storage, API behaviour and repeatable signal evaluation.
 
-## How it works
+## Workflow
 
-~~~text
+```text
 Synthetic event
       ↓
 Input validation
       ↓
-Configured rules
+Configured deterministic rules
       ↓
-Signal with a reference to its source event
+Signal linked to its source event
       ↓
 Local storage, evidence references and review
-~~~
+```
 
-A rule-based signal can be explained by looking at the input and the configured threshold. The project does not need a model to make those rule decisions.
+A rule-based signal can be explained by checking its input and configured threshold. Those decisions do not require a machine-learning model.
 
-## Run it locally
+## First run
 
 Python 3.11 or newer is recommended.
 
-~~~bash
+```bash
 python -m pip install -e ".[test]"
 python -m unittest discover -s tests -v
 vireon simulate --scenario biomarker-signal
 vireon registry list
-uvicorn vireon.api:app --reload
-~~~
+```
 
-Then open http://127.0.0.1:8000/docs or the local /dashboard route. See docs/demo.md for a short walkthrough.
+To start the API, run `uvicorn vireon.api:app --reload`, then open `http://127.0.0.1:8000/docs` or the local `/dashboard` route. See the [portfolio demo guide](docs/portfolio-demo.md), [architecture](docs/architecture.md) and [data model](docs/data-model.md).
 
-For repeatable signal evaluation, I can pass an explicit timezone-aware evaluated_at timestamp. The same event, rules and timestamp should produce repeatable results.
+For repeatable signal evaluation, I can supply an explicit timezone-aware `evaluated_at` timestamp. The same event, rules and timestamp should produce repeatable results.
 
-## Current limits
+## Limits
 
-VIREON uses synthetic data and local prototype infrastructure. It does not diagnose, recommend treatment, make clinical decisions, predict regulatory approval or establish regulatory compliance. A trial-integrity or monitoring flag is only a software-generated signal; it is not proof of misconduct. Do not use real patient data.
-
-I am keeping the project small and testing its current behaviour before adding more services or machine-learning features. The source code and tests are the best place to check exactly what is implemented.
+VIREON uses synthetic data and local prototype infrastructure. It does not diagnose, recommend treatment, make clinical decisions, predict regulatory approval or establish regulatory compliance. A monitoring flag is a software-generated signal, not proof of misconduct. Do not use real patient data. I am keeping the project small and testing current behaviour before adding more services or machine-learning features.
